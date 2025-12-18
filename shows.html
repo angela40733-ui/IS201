@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favorite Shows</title>
+     <!-- Your custom stylesheet (from scratch) -->
+    <link rel="stylesheet" href="./styles/style.css" />
+
+    <!-- Tableau Embedding API (for live interactive viz) -->
+     
+    <script type="module" src="https://public.tableau.com/javascripts/api/tableau.embedding.3.latest.min.js"></script>
+</head>
+<body>
+     <!-- div #1: page wrapper -->
+  <div class="page">
+
+    <!-- div #2: top nav (navigation back to professional pages) -->
+    <div class="top-nav">
+      <a href="index.html">Home</a> |
+      <a href="resume.html">Resume</a> |
+      <a href="#!">Favorite Shows</a> |
+      <a href="game.html">Game</a>
+    </div>
+
+    <!-- div #3: header block -->
+    <div class="header">
+      <h1>My Favorite Shows</h1>
+      
+
+      <!-- On-page anchor links -->
+      <p class="jump">
+        Jump to:
+        <a class="anchor-link" href="#stranger-things">Stranger Things</a>
+        <a class="anchor-link" href="#haikyuu">Haikyuu!!</a>
+        <a class="anchor-link" href="#good-place">The Good Place</a>
+      </p>
+    </div>
+
+    <!-- Requirement: Ordered list with an unordered list embedded (nested lists) -->
+    <div class="card">
+      <h2>Top 3 Shows</h2>
+
+      <ol class="show-list">
+        <li>
+          Stranger Things
+          <ul>
+            <li>My comfort show with strong nostalgia</li>
+            <li>Great storytelling and character growth</li>
+            <li>Perfect mix of mystery and emotion</li>
+          </ul>
+        </li>
+
+        <li>
+          Haikyuu!!
+          <ul>
+            <li>Motivating and energetic</li>
+            <li>Teamwork + growth mindset</li>
+            <li>Easy to rewatch when I need a boost</li>
+          </ul>
+        </li>
+
+        <li>
+          The Good Place
+          <ul>
+            <li>Funny but also surprisingly deep</li>
+            <li>Makes philosophy feel approachable</li>
+            <li>Comforting ending and meaningful themes</li>
+          </ul>
+        </li>
+      </ol>
+    </div>
+
+    <!-- Stranger Things section -->
+    <div class="card" id="stranger-things">
+      <h2>Stranger Things</h2>
+      <p>
+        I’ve watched it multiple times. It’s nostalgic, intense, and the friendships feel real.
+      </p>
+
+      <!-- Requirement: At least one image NOT from the Bootstrap theme -->
+      <img class="poster" src="images/stranger_things_poster.webp" alt="Stranger Things poster" />
+
+      <!-- Requirement: Embedded YouTube video -->
+      <div class="media">
+        <h3>Trailer</h3>
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/e0Eo0D038rQ?si=udlDJb0pYBMe1hNO" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen>
+
+        </iframe>
+        <div class='tableauPlaceholder' id='viz1766032948390' style='position: relative'><noscript><a href='#'><img alt='Actual Dashboard ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;RE&#47;REMAKEofStrangerThingsRatings&#47;ActualDashboard&#47;1_rss.png' style='border: none' /></a></noscript><object class='tableauViz'  style='display:none;'><param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' /> <param name='embed_code_version' value='3' /> <param name='site_root' value='' /><param name='name' value='REMAKEofStrangerThingsRatings&#47;ActualDashboard' /><param name='tabs' value='no' /><param name='toolbar' value='yes' /><param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;RE&#47;REMAKEofStrangerThingsRatings&#47;ActualDashboard&#47;1.png' /> <param name='animate_transition' value='yes' /><param name='display_static_image' value='yes' /><param name='display_spinner' value='yes' /><param name='display_overlay' value='yes' /><param name='display_count' value='yes' /><param name='language' value='en-US' /></object></div>                <script type='text/javascript'>                    var divElement = document.getElementById('viz1766032948390');                    var vizElement = divElement.getElementsByTagName('object')[0];                    vizElement.style.width='100%';vizElement.style.height='600px';                    var scriptElement = document.createElement('script');                    scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';                    vizElement.parentNode.insertBefore(scriptElement, vizElement);                </script>
+      </div>
+
+      
+    </div>
+
+    <!-- Haikyuu section -->
+    <div class="card" id="haikyuu">
+      <h2>Haikyuu!!</h2>
+      <p>
+        It’s one of the most motivating shows I’ve ever watched. Every episode makes me want to work harder.
+      </p>
+
+      <img class="poster" src="images/haikyuu_poster.webp" alt="Haikyuu poster" />
+    </div>
+
+    <!-- The Good Place section -->
+    <div class="card" id="good-place">
+      <h2>The Good Place</h2>
+      <p>
+        It’s funny, smart, and unexpectedly emotional. I love how it explores ethics in a simple way.
+      </p>
+
+      <img class="poster" src="images/the_good_place_pic.webp" alt="The Good Place poster" />
+        </div>  
+      <p><a class="anchor-link" href="#top">Back to top</a></p>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demogorgon Shooter</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #0b1020;
+      color: #f9fafb;
+    }
+
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .top-nav {
+      background-color: #1f2937;
+      padding: 12px 16px;
+      border-radius: 12px;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .top-nav a {
+      color: #f9fafb;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .top-nav a:hover { color: #a5b4fc; }
+
+    .card {
+      margin-top: 16px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .hud {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      font-size: 14px;
+      color: #e5e7eb;
+    }
+
+    .pill {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 999px;
+      padding: 6px 10px;
+    }
+
+    button {
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.08); }
+    button:active { transform: translateY(1px); }
+
+    canvas {
+      width: 100%;
+      max-width: 960px;
+      height: auto;
+      display: block;
+      background: radial-gradient(1000px 500px at 50% 100%, rgba(79,70,229,0.18), transparent 60%),
+                  radial-gradient(700px 400px at 10% 10%, rgba(245,158,11,0.10), transparent 60%),
+                  #050814;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.10);
+      margin-top: 14px;
+    }
+
+    .tips {
+      margin-top: 10px;
+      color: #cbd5e1;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .warn {
+      color: #fca5a5;
+      font-weight: 700;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <div class="top-nav">
+      <a href="index.html">Home</a>
+      <a href="resume.html">Resume</a>
+      <a href="shows.html">Favorite Shows</a>
+      <a href="game.html">Game</a>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <h1 style="margin:0; font-size: 22px;">Demogorgon Shooter</h1>
+          <div class="tips">
+            玩法：移動滑鼠瞄準，點擊或按 <strong>Space</strong> 射擊。<br>
+            <span class="warn">注意：</span>不要讓 Demogorgon 碰到你底部的防線（碰到就扣血）。
+          </div>
+        </div>
+
+        <div class="hud">
+          <span class="pill">Score: <strong id="score">0</strong></span>
+          <span class="pill">HP: <strong id="hp">3</strong></span>
+          <span class="pill">Wave: <strong id="wave">1</strong></span>
+          <button id="restartBtn">Restart</button>
+        </div>
+      </div>
+
+      <canvas id="game" width="960" height="540" aria-label="Demogorgon shooter game"></canvas>
+    </div>
+  </div>
+
+  <script>
+    // ====== 基本設定 ======
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const scoreEl = document.getElementById("score");
+    const hpEl = document.getElementById("hp");
+    const waveEl = document.getElementById("wave");
+    const restartBtn = document.getElementById("restartBtn");
+
+    // 使用 devicePixelRatio 讓畫面更清楚（同時保持 canvas 內部座標一致）
+    const DPR = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    function setCanvasSize() {
+      const cssWidth = 960;
+      const cssHeight = 540;
+      canvas.style.width = cssWidth + "px";
+      canvas.style.height = cssHeight + "px";
+      canvas.width = cssWidth * DPR;
+      canvas.height = cssHeight * DPR;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0); // 之後用 CSS 尺寸座標畫就好
+    }
+    setCanvasSize();
+
+    // ====== 遊戲狀態 ======
+    const W = 960;
+    const H = 540;
+
+    let running = true;
+    let score = 0;
+    let hp = 3;
+    let wave = 1;
+
+    // 玩家（底部砲台）
+    const player = {
+      x: W / 2,
+      y: H - 50,
+      r: 18
+    };
+
+    // 準星
+    const aim = { x: W/2, y: H/2 };
+
+    // 子彈與敵人
+    let bullets = [];
+    let enemies = [];
+    let lastShot = 0;
+
+    // 參數（可調難度）
+    const shootCooldownMs = 120; // 射速
+    let enemySpawnRate = 900;    // 生成間隔（會隨 wave 變快）
+    let enemySpeed = 1.25;       // 會隨 wave 增加
+    let enemyHpBase = 2;
+
+    let lastSpawn = 0;
+
+    // ====== 事件：滑鼠瞄準 & 射擊 ======
+    function getMousePos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const mx = (e.clientX - rect.left) * (W / rect.width);
+      const my = (e.clientY - rect.top) * (H / rect.height);
+      return { x: mx, y: my };
+    }
+
+    canvas.addEventListener("mousemove", (e) => {
+      const p = getMousePos(e);
+      aim.x = p.x; aim.y = p.y;
+    });
+
+    canvas.addEventListener("click", () => {
+      shoot();
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        shoot();
+      }
+      if (e.code === "KeyR") resetGame();
+    });
+
+    restartBtn.addEventListener("click", resetGame);
+
+    function shoot() {
+      if (!running) return;
+      const now = performance.now();
+      if (now - lastShot < shootCooldownMs) return;
+      lastShot = now;
+
+      // 從玩家到準星方向
+      const dx = aim.x - player.x;
+      const dy = aim.y - player.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const vx = (dx / len) * 8.5;
+      const vy = (dy / len) * 8.5;
+
+      bullets.push({
+        x: player.x,
+        y: player.y,
+        vx, vy,
+        r: 4
+      });
+    }
+
+    // ====== 生成敵人（Demogorgon：用簡單圖形做怪物感） ======
+    function spawnEnemy() {
+      const x = 60 + Math.random() * (W - 120);
+      const y = -40;
+      const size = 26 + Math.random() * 10;
+
+      enemies.push({
+        x, y,
+        r: size,
+        hp: enemyHpBase + Math.floor(wave / 2),
+        speed: enemySpeed + Math.random() * 0.6,
+        wobble: Math.random() * Math.PI * 2
+      });
+    }
+
+    // ====== 主要迴圈 ======
+    let prev = performance.now();
+    function loop(now) {
+      const dt = now - prev;
+      prev = now;
+
+      update(now, dt);
+      draw();
+
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    function update(now, dt) {
+      if (!running) return;
+
+      // 生成節奏（隨 wave 變快）
+      if (now - lastSpawn > enemySpawnRate) {
+        lastSpawn = now;
+        spawnEnemy();
+      }
+
+      // 更新子彈
+      bullets = bullets.filter(b => {
+        b.x += b.vx;
+        b.y += b.vy;
+        return b.x > -30 && b.x < W + 30 && b.y > -30 && b.y < H + 30;
+      });
+
+      // 更新敵人（往下走 + 小幅左右晃）
+      enemies.forEach(en => {
+        en.wobble += 0.03;
+        en.x += Math.sin(en.wobble) * 0.6;
+        en.y += en.speed;
+      });
+
+      // 碰到底部防線就扣血並移除
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        if (enemies[i].y > H - 25) {
+          enemies.splice(i, 1);
+          hp -= 1;
+          hpEl.textContent = hp;
+          if (hp <= 0) endGame();
+        }
+      }
+
+      // 子彈打中敵人
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const en = enemies[i];
+
+        for (let j = bullets.length - 1; j >= 0; j--) {
+          const b = bullets[j];
+          const d = Math.hypot(en.x - b.x, en.y - b.y);
+          if (d < en.r + b.r) {
+            bullets.splice(j, 1);
+            en.hp -= 1;
+
+            if (en.hp <= 0) {
+              enemies.splice(i, 1);
+              score += 10;
+              scoreEl.textContent = score;
+
+              // 波次提升：每 80 分升一波，變更難
+              const newWave = 1 + Math.floor(score / 80);
+              if (newWave !== wave) {
+                wave = newWave;
+                waveEl.textContent = wave;
+                // 增加難度
+                enemySpawnRate = Math.max(350, 900 - wave * 70);
+                enemySpeed = 1.25 + wave * 0.18;
+                enemyHpBase = 2 + Math.floor(wave / 3);
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    // ====== 畫面渲染 ======
+    function draw() {
+      // 清背景
+      ctx.clearRect(0, 0, W, H);
+
+      // 星點
+      drawStars();
+
+      // 防線
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = "rgba(255,255,255,0.10)";
+      ctx.fillRect(0, H - 22, W, 22);
+      ctx.globalAlpha = 1;
+
+      // 玩家砲台
+      drawPlayer();
+
+      // 準星
+      drawCrosshair(aim.x, aim.y);
+
+      // 子彈
+      bullets.forEach(drawBullet);
+
+      // 敵人（Demogorgon）
+      enemies.forEach(drawDemogorgon);
+
+      // Game Over 視覺
+      if (!running) {
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 44px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("GAME OVER", W/2, H/2 - 10);
+
+        ctx.font = "18px Arial";
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.fillText("Press R or click Restart", W/2, H/2 + 26);
+      }
+    }
+
+    function drawStars() {
+      // 簡單的星空點點（每帧固定少量即可）
+      for (let i = 0; i < 40; i++) {
+        const x = (i * 97) % W;
+        const y = (i * 53) % (H - 60);
+        ctx.fillStyle = "rgba(255,255,255,0.08)";
+        ctx.fillRect(x, y, 2, 2);
+      }
+    }
+
+    function drawPlayer() {
+      // 底部小砲台 + 光暈
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.r + 10, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(79,70,229,0.16)";
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.88)";
+      ctx.fill();
+
+      // 槍管指向準星
+      const dx = aim.x - player.x;
+      const dy = aim.y - player.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len;
+      const uy = dy / len;
+
+      ctx.strokeStyle = "rgba(79,70,229,0.95)";
+      ctx.lineWidth = 6;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(player.x + ux * 10, player.y + uy * 10);
+      ctx.lineTo(player.x + ux * 30, player.y + uy * 30);
+      ctx.stroke();
+    }
+
+    function drawCrosshair(x, y) {
+      ctx.strokeStyle = "rgba(255,255,255,0.85)";
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.arc(x, y, 12, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(x - 18, y);
+      ctx.lineTo(x - 6, y);
+      ctx.moveTo(x + 6, y);
+      ctx.lineTo(x + 18, y);
+      ctx.moveTo(x, y - 18);
+      ctx.lineTo(x, y - 6);
+      ctx.moveTo(x, y + 6);
+      ctx.lineTo(x, y + 18);
+      ctx.stroke();
+    }
+
+    function drawBullet(b) {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(245,158,11,0.95)";
+      ctx.fill();
+    }
+
+    function drawDemogorgon(en) {
+      // 用圖形做一個「花瓣嘴」怪的感覺（非真實圖片，避免版權問題）
+      const x = en.x, y = en.y, r = en.r;
+
+      // 身體（暗紅/黑）
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(17,24,39,0.95)";
+      ctx.fill();
+
+      // 花瓣嘴（5 片）
+      for (let k = 0; k < 5; k++) {
+        const ang = (Math.PI * 2 * k) / 5 + en.wobble * 0.2;
+        const px = x + Math.cos(ang) * (r * 0.9);
+        const py = y + Math.sin(ang) * (r * 0.9);
+
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.quadraticCurveTo(
+          x + Math.cos(ang) * (r * 1.3),
+          y + Math.sin(ang) * (r * 1.3),
+          px, py
+        );
+        ctx.closePath();
+        ctx.fillStyle = "rgba(190,18,60,0.65)";
+        ctx.fill();
+      }
+
+      // 中心口（亮一點）
+      ctx.beginPath();
+      ctx.arc(x, y, r * 0.35, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(248,113,113,0.55)";
+      ctx.fill();
+
+      // HP 小條
+      const barW = r * 2.0;
+      const barH = 6;
+      const hpMax = enemyHpBase + Math.floor(wave / 2);
+      const pct = Math.max(0, Math.min(1, en.hp / hpMax));
+
+      ctx.fillStyle = "rgba(255,255,255,0.18)";
+      ctx.fillRect(x - barW/2, y - r - 14, barW, barH);
+
+      ctx.fillStyle = "rgba(79,70,229,0.95)";
+      ctx.fillRect(x - barW/2, y - r - 14, barW * pct, barH);
+    }
+
+    function endGame() {
+      running = false;
+    }
+
+    function resetGame() {
+      running = true;
+      score = 0; hp = 3; wave = 1;
+      bullets = [];
+      enemies = [];
+      lastShot = 0;
+      lastSpawn = 0;
+      enemySpawnRate = 900;
+      enemySpeed = 1.25;
+      enemyHpBase = 2;
+
+      scoreEl.textContent = score;
+      hpEl.textContent = hp;
+      waveEl.textContent = wave;
+    }
+  </script>
+</body>
+</html>
